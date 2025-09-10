@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "build": "echo 'No build step required'"
+    "build": "npm i --legacy-peer-deps"
   },
   "keywords": [],
   "author": "",
@@ -19,8 +19,7 @@
     "hpp": "^0.2.3",
     "socket.io": "^4.7.4",
     "socket.io-msgpack-parser": "^3.0.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
   }
+  
+  
 }
