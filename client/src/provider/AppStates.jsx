@@ -139,8 +139,12 @@ export function AppContextProvider({ children }) {
       socket.on("setElements", (data) => {
         setElements(data, true, false);
       });
+
+      socket.on("sendElements", (targetSocketId) => {
+        socket.emit("sendElements", { elements, targetSocketId });
+      });
     }
-  }, [session]);
+  }, [session, elements]);
 
   return (
     <AppContext.Provider

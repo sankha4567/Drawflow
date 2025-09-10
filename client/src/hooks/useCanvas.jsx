@@ -200,7 +200,10 @@ export default function useCanvas() {
     lockUI(false);
 
     if (event.clientX == mouseAction.x && event.clientY == mouseAction.y) {
-      setElements("prevState");
+      // Remove the last element if mouse didn't move (cancel drawing)
+      if (action == "draw") {
+        setElements((prevState) => prevState.slice(0, -1));
+      }
       return;
     }
 

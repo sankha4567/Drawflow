@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Xmark } from "../assets/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppContext } from "../provider/AppStates";
 import { v4 as uuid } from "uuid";
 import { useSearchParams } from "react-router-dom";
@@ -12,11 +12,28 @@ export default function Collaboration() {
   const [open, setOpen] = useState(false);
   const users = 0;
 
+  // Handle joining session from URL
+  useEffect(() => {
+    const roomId = searchParams.get("room");
+    if (roomId && !session) {
+      setSession(roomId);
+      socket.emit("join", roomId);
+      // Request current elements from the room
+      setTimeout(() => {
+        socket.emit("requestElements", roomId);
+      }, 100);
+    }
+  }, [searchParams, session, setSession]);
+
   const startSession = () => {
     const sessionId = uuid();
     setSearchParams({ room: sessionId });
     setSession(sessionId);
     socket.emit("join", sessionId);
+    // Request current elements from the room (though it should be empty for new sessions)
+    setTimeout(() => {
+      socket.emit("requestElements", sessionId);
+    }, 100);
   };
 
   const endSession = () => {

@@ -11,8 +11,18 @@ export default function useHistory(initialState, session) {
 
     if (session) {
       if (action == "prevState") return;
-      setHistory([newState]);
-      setIndex(0);
+
+      if (overwrite) {
+        // In collaboration mode, we still need to maintain history for undo/redo
+        const historyCopy = [...history];
+        historyCopy[index] = newState;
+        setHistory(historyCopy);
+      } else {
+        // Add to history normally
+        const updatedState = [...history].slice(0, index + 1);
+        setHistory([...updatedState, newState]);
+        setIndex((prevState) => prevState + 1);
+      }
 
       if (emit) {
         socket.emit("getElements", { elements: newState, room: session });
@@ -38,13 +48,25 @@ export default function useHistory(initialState, session) {
     }
   };
 
-  const undo = () =>
-    setIndex((prevState) => (prevState > 0 ? prevState - 1 : prevState));
+  const undo = () => {
+    const newIndex = index > 0 ? index - 1 : index;
+    setIndex(newIndex);
 
-  const redo = () =>
-    setIndex((prevState) =>
-      prevState < history.length - 1 ? prevState + 1 : prevState
-    );
+    if (session && newIndex !== index) {
+      // Emit the current state after undo
+      socket.emit("getElements", { elements: history[newIndex], room: session });
+    }
+  };
+
+  const redo = () => {
+    const newIndex = index < history.length - 1 ? index + 1 : index;
+    setIndex(newIndex);
+
+    if (session && newIndex !== index) {
+      // Emit the current state after redo
+      socket.emit("getElements", { elements: history[newIndex], room: session });
+    }
+  };
 
   return [history[index], setState, undo, redo];
 }
