@@ -1,51 +1,57 @@
-// require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import hpp from "hpp";
+import helmet from "helmet";
+import http from "http";
+import { Server } from "socket.io";
+import parser from "socket.io-msgpack-parser";
 
-const express = require("express");
+dotenv.config();
+
 const app = express();
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
-const parser = require("socket.io-msgpack-parser");
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+// Security middlewares
+app.use(hpp());
+app.use(helmet());
+
+// Environment variables
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173"; 
 const PORT = process.env.PORT || 8080;
 
-app.use(
-  cors({
-    //origin: [CLIENT_URL],
-     origin: CLIENT_URL ? [CLIENT_URL] : "*",
-  })
-);
+// CORS setup with fallback
+const allowedOrigin = CLIENT_URL || "*";
+app.use(cors({ origin: allowedOrigin }));
 
+// Create HTTP server
 const server = http.createServer(app);
 
+// Socket.IO setup
 const io = new Server(server, {
   parser,
-  cors: {
-    origin: [CLIENT_URL],
-  },
+  cors: { origin: allowedOrigin },
 });
 
 io.on("connection", (socket) => {
-  socket.on("join", (room) => {
-    socket.join(room);
-  });
+  console.log("⚡ New socket connected:", socket.id);
 
-  socket.on("leave", (room) => {
-    socket.leave(room);
-  });
+  socket.on("join", (room) => socket.join(room));
+  socket.on("leave", (room) => socket.leave(room));
+  socket.on("getElements", ({ elements, room }) =>
+    socket.to(room).emit("setElements", elements)
+  );
 
-  socket.on("getElements", ({ elements, room }) => {
-    socket.to(room).emit("setElements", elements);
-  });
-});
-
-app.get("/", (req, res) => {
-  res.send(
-    `<marquee>To try the app visite : <a href="${CLIENT_URL}">${CLIENT_URL}</a></marquee>`
+  socket.on("disconnect", () =>
+    console.log("⚡ Socket disconnected:", socket.id)
   );
 });
 
+// Basic health route
+app.get("/", (req, res) => {
+  res.json({ message: "✅ Server is running" });
+});
+
+// Start server
 server.listen(PORT, () => {
-  console.log("Listen in port : " + PORT);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
