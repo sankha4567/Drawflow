@@ -1,4 +1,4 @@
- require("dotenv").config();
+require("dotenv").config();
 
 const express = require("express");
 const app = express();
@@ -7,26 +7,29 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const parser = require("socket.io-msgpack-parser");
 
-const CLIENT_URL = process.env.CLIENT_URL;
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
 const PORT = process.env.PORT || 8080;
 
+// ✅ Allow all origins (no methods/credentials)
 app.use(
   cors({
-    //origin: [CLIENT_URL],
-     origin: [CLIENT_URL],
+    origin: "*",
   })
 );
 
 const server = http.createServer(app);
 
+// ✅ Socket.IO with all origins allowed
 const io = new Server(server, {
   parser,
   cors: {
-    origin: [CLIENT_URL],
+    origin: "*",
   },
 });
 
 io.on("connection", (socket) => {
+  console.log("✅ New client connected:", socket.id);
+
   socket.on("join", (room) => {
     socket.join(room);
   });
@@ -40,10 +43,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("requestElements", (room) => {
-    // Get all sockets in the room
     const roomSockets = io.sockets.adapter.rooms.get(room);
     if (roomSockets && roomSockets.size > 1) {
-      // Find another socket in the room to request elements from
       for (const socketId of roomSockets) {
         if (socketId !== socket.id) {
           io.to(socketId).emit("sendElements", socket.id);
@@ -56,6 +57,10 @@ io.on("connection", (socket) => {
   socket.on("sendElements", ({ elements, targetSocketId }) => {
     io.to(targetSocketId).emit("setElements", elements);
   });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+  });
 });
 
 app.get("/", (req, res) => {
@@ -65,5 +70,6 @@ app.get("/", (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log("Listen in port : " + PORT);
+  console.log("🚀 Server running on port:", PORT);
+  console.log("🌍 Allowed client: * (all origins)");
 });
